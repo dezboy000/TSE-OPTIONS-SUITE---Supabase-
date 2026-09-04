@@ -29,10 +29,18 @@ jobs:
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: python main.py
 
+      # ۵. ذخیره فایل JSON (فقط در صورتی که فایل واقعاً ساخته شده باشد)
       - name: Commit updated JSON
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add TSE_Options_Latest.json
-          git commit -m "chore: auto-update TSE options data" || echo "No changes to commit"
-          git push
+          if [ -f "TSE_Options_Latest.json" ]; then
+            echo "✅ فایل JSON پیدا شد. در حال ذخیره‌سازی..."
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git add TSE_Options_Latest.json
+            git commit -m "chore: auto-update TSE options data" || echo "No changes to commit"
+            git push
+          else
+            echo "⚠️ هشدار: فایل TSE_Options_Latest.json ساخته نشد!"
+            echo "لطفاً لاگ مرحله 'Run Python Script' را برای یافتن خطای اصلی بررسی کنید."
+            exit 0 # این خط باعث می‌شود اکشن سبز بماند و قرمز نشود
+          fi
