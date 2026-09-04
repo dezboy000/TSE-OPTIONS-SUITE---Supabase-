@@ -1244,12 +1244,12 @@ def process_symbol(client, symbol, contracts_df, run_date=None):
         "updated": updated, "up_to_date": up_to_date, "failed": failed,
         "extracted": True, "last_date_jalali": last_date_jalali,
     }
-
-
 def main():
     global errors, requests_count, new_rows_underlying, new_rows_option, carried_rows_count
     
+    # تعریف زمان شروع (رفع خطای start_time)
     start_time = time.time()
+    
     print()
     print("=" * 75)
     print("      TSE OPTIONS SUITE - نسخه بازنویسی‌شده کامل (Supabase)")
@@ -1258,15 +1258,15 @@ def main():
     print(f"پایگاه‌داده: Supabase ({SUPABASE_URL})")
     print(f"فایل JSON: {os.path.abspath(JSON_FILE)}")
     print(f"حالت: {'REBUILD' if REBUILD else 'افزایشی'}")
-    if RESET_DB:
-        print("️  حالت RESET: در Supabase جداول باید دستی پاک شوند یا از REBUILD استفاده کنید.")
     print("=" * 75)
     
     if RESET_DB or REBUILD:
         reset_database()
     
-    client = init_db()
+    # تعریف کلاینت سوپابیس (رفع خطای client)
+    client = supabase
     
+    # ثبت شروع Run در دیتابیس
     run_data = {"run_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
     res = client.table("runs").insert(run_data).execute()
     run_id = res.data[0]["run_id"]
@@ -1278,6 +1278,7 @@ def main():
         print("هیچ قرارداد جاری پیدا نشد.")
         return
     print(f"   کل قراردادهای جاری: {len(contracts):,}")
+    
     run_date = pd.Timestamp.today().normalize()
     update_contracts_table(client, contracts, run_id)
     
@@ -1286,6 +1287,7 @@ def main():
     total_updated = total_up_to_date = total_failed = 0
     symbols_by_last_date = {}
     symbols_not_extracted = []
+    
     for symbol in SYMBOLS:
         res = process_symbol(client, symbol, contracts, run_date=run_date)
         total_updated += res["updated"]
@@ -1303,10 +1305,12 @@ def main():
     
     print()
     print("4) به‌روزرسانی JSON...")
+    # ارسال 'client' به جای 'conn'
     json_file = export_to_json(client, run_id)
     
     elapsed = time.time() - start_time
     
+    # به‌روزرسانی آمار نهایی در جدول runs
     update_data = {
         "symbols_requested": len(SYMBOLS),
         "contracts_active": len(contracts),
@@ -1335,6 +1339,7 @@ def main():
     print()
     print(f"تاریخ شمسی: {gregorian_to_jalali(pd.Timestamp.today())}")
     print()
+    
     if symbols_by_last_date:
         for date_jalali, syms in sorted(symbols_by_last_date.items(), reverse=True):
             names = "، ".join(syms)
@@ -1342,6 +1347,7 @@ def main():
     else:
         print("هیچ نمادی با موفقیت به‌روز نشد")
     print()
+    
     if symbols_not_extracted:
         print(f"نمادهای استخراج‌نشده: {'، '.join(symbols_not_extracted)}")
     else:
@@ -1356,27 +1362,9 @@ if __name__ == "__main__":
     parser.add_argument("--rebuild", action="store_true", help="بازسازی کامل")
     parser.add_argument("--reset", action="store_true", help="حذف دیتابیس قدیمی و ساخت از صفر")
     parser.add_argument("--db", type=str, default=None, help="مسیر دیتابیس (نادیده گرفته می‌شود)")
-    print()
-    print("4) به‌روزرسانی JSON...")
-    
-    # --- خطوط جدید برای ردیابی ---
-    print("DEBUG 1: قبل از فراخوانی export_to_json")
-    try:
-        json_file = export_to_json(client, run_id)
-        print(f"DEBUG 2: export_to_json اجرا شد. مسیر فایل: {json_file}")
-        
-        import os
-        if os.path.exists(json_file):
-            print("DEBUG 3: ✅ فایل JSON با موفقیت در دیسک ساخته شد!")
-        else:
-            print("DEBUG 3: ❌ هشدار: تابع اجرا شد اما فایل در دیسک وجود ندارد!")
-    except Exception as e:
-        print(f"DEBUG 3: ❌ خطای شدید در ساخت JSON: {e}")
-    # -----------------------------
-    
-    elapsed = time.time() - start_time
-    # ... (ادامه کد به‌همان شکل قبل)
+    parser.add_argument("--json", type=str, default=None, help="مسیر JSON")
     args = parser.parse_args()
+    
     if args.rebuild:
         REBUILD = True
     if args.reset:
@@ -1385,4 +1373,5 @@ if __name__ == "__main__":
         DB_FILE = args.db
     if args.json:
         JSON_FILE = args.json
+        
     main()
