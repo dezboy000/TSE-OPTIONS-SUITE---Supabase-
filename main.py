@@ -1356,7 +1356,26 @@ if __name__ == "__main__":
     parser.add_argument("--rebuild", action="store_true", help="بازسازی کامل")
     parser.add_argument("--reset", action="store_true", help="حذف دیتابیس قدیمی و ساخت از صفر")
     parser.add_argument("--db", type=str, default=None, help="مسیر دیتابیس (نادیده گرفته می‌شود)")
-    parser.add_argument("--json", type=str, default=None, help="مسیر JSON")
+    print()
+    print("4) به‌روزرسانی JSON...")
+    
+    # --- خطوط جدید برای ردیابی ---
+    print("DEBUG 1: قبل از فراخوانی export_to_json")
+    try:
+        json_file = export_to_json(client, run_id)
+        print(f"DEBUG 2: export_to_json اجرا شد. مسیر فایل: {json_file}")
+        
+        import os
+        if os.path.exists(json_file):
+            print("DEBUG 3: ✅ فایل JSON با موفقیت در دیسک ساخته شد!")
+        else:
+            print("DEBUG 3: ❌ هشدار: تابع اجرا شد اما فایل در دیسک وجود ندارد!")
+    except Exception as e:
+        print(f"DEBUG 3: ❌ خطای شدید در ساخت JSON: {e}")
+    # -----------------------------
+    
+    elapsed = time.time() - start_time
+    # ... (ادامه کد به‌همان شکل قبل)
     args = parser.parse_args()
     if args.rebuild:
         REBUILD = True
